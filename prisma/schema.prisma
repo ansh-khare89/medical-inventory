@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  password  String?
+  role      String   @default("STAFF") // ADMIN or STAFF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String?
+  address   String?
+  gstNumber String?
+  purchases Purchase[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Medicine {
+  id                  String          @id @default(cuid())
+  name                String
+  company             String?
+  category            String?
+  description         String?
+  minimumStockLevel   Int             @default(10)
+  rackLocation        String?
+  prescriptionRequired Boolean         @default(false)
+  batches             MedicineBatch[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model MedicineBatch {
+  id            String         @id @default(cuid())
+  medicineId    String
+  medicine      Medicine       @relation(fields: [medicineId], references: [id])
+  batchNumber   String
+  expiryDate    DateTime
+  quantity      Int            @default(0)
+  purchasePrice Float          @default(0)
+  sellingPrice  Float          @default(0)
+  purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([medicineId, batchNumber])
+}
+
+model Purchase {
+  id           String         @id @default(cuid())
+  supplierId   String
+  supplier     Supplier       @relation(fields: [supplierId], references: [id])
+  invoiceNumber String?
+  purchaseDate DateTime       @default(now())
+  totalAmount  Float          @default(0)
+  items        PurchaseItem[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id            String        @id @default(cuid())
+  purchaseId    String
+  purchase      Purchase      @relation(fields: [purchaseId], references: [id])
+  batchId       String
+  batch         MedicineBatch @relation(fields: [batchId], references: [id])
+  quantity      Int
+  purchasePrice Float
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  saleDate      DateTime   @default(now())
+  customerName  String?
+  customerPhone String?
+  totalAmount   Float      @default(0)
+  items         SaleItem[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model SaleItem {
+  id           String        @id @default(cuid())
+  saleId       String
+  sale         Sale          @relation(fields: [saleId], references: [id])
+  batchId      String
+  batch        MedicineBatch @relation(fields: [batchId], references: [id])
+  quantity     Int
+  sellingPrice Float
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
