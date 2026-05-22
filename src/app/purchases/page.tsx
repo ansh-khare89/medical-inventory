@@ -91,54 +91,56 @@ export default function PurchasesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="font-semibold text-slate-600">Date</TableHead>
-                <TableHead className="font-semibold text-slate-600">Invoice No.</TableHead>
-                <TableHead className="font-semibold text-slate-600">Supplier</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Items</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Amount</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto w-full">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    Loading purchases...
-                  </TableCell>
+                  <TableHead className="font-semibold text-slate-600">Date</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Invoice No.</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Supplier</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Items</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Amount</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
-              ) : purchases.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    No purchases found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                purchases.map((purchase) => (
-                  <TableRow key={purchase.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-medium text-slate-900">
-                      {formatDate(purchase.purchaseDate)}
-                    </TableCell>
-                    <TableCell className="text-slate-600">{purchase.invoiceNumber || "-"}</TableCell>
-                    <TableCell className="text-slate-600">
-                      {purchase.supplier?.name || purchase.supplierId || "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-slate-600">{purchase.items?.length || 0}</TableCell>
-                    <TableCell className="text-right font-medium text-slate-900">
-                      ₹{purchase.totalAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                        View
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      Loading purchases...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : purchases.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      No purchases found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  purchases.map((purchase) => (
+                    <TableRow key={purchase.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-medium text-slate-900">
+                        {formatDate(purchase.purchaseDate)}
+                      </TableCell>
+                      <TableCell className="text-slate-600">{purchase.invoiceNumber || "-"}</TableCell>
+                      <TableCell className="text-slate-600">
+                        {purchase.supplier?.name || purchase.supplierId || "-"}
+                      </TableCell>
+                      <TableCell className="text-right text-slate-600">{purchase.items?.length || 0}</TableCell>
+                      <TableCell className="text-right font-medium text-slate-900">
+                        ₹{purchase.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

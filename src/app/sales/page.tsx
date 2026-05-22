@@ -90,52 +90,54 @@ export default function SalesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="font-semibold text-slate-600">Date & Time</TableHead>
-                <TableHead className="font-semibold text-slate-600">Customer</TableHead>
-                <TableHead className="font-semibold text-slate-600">Phone</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Items</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Total Amount</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto w-full">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    Loading sales...
-                  </TableCell>
+                  <TableHead className="font-semibold text-slate-600">Date & Time</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Customer</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Phone</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Items</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Total Amount</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
-              ) : sales.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    No sales found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                sales.map((sale) => (
-                  <TableRow key={sale.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-medium text-slate-900">
-                      {formatDate(sale.saleDate)}
-                    </TableCell>
-                    <TableCell className="text-slate-600">{sale.customerName || "Walk-in Customer"}</TableCell>
-                    <TableCell className="text-slate-600">{sale.customerPhone || "-"}</TableCell>
-                    <TableCell className="text-right text-slate-600">{sale.items?.length || 0}</TableCell>
-                    <TableCell className="text-right font-medium text-slate-900">
-                      ₹{sale.totalAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                        View Receipt
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      Loading sales...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : sales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      No sales found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sales.map((sale) => (
+                    <TableRow key={sale.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-medium text-slate-900">
+                        {formatDate(sale.saleDate)}
+                      </TableCell>
+                      <TableCell className="text-slate-600">{sale.customerName || "Walk-in Customer"}</TableCell>
+                      <TableCell className="text-slate-600">{sale.customerPhone || "-"}</TableCell>
+                      <TableCell className="text-right text-slate-600">{sale.items?.length || 0}</TableCell>
+                      <TableCell className="text-right font-medium text-slate-900">
+                        ₹{sale.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                          View Receipt
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

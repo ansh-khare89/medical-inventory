@@ -103,68 +103,70 @@ export default function InventoryPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="font-semibold text-slate-600">Name</TableHead>
-                <TableHead className="font-semibold text-slate-600">Category</TableHead>
-                <TableHead className="font-semibold text-slate-600">Company</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Stock</TableHead>
-                <TableHead className="font-semibold text-slate-600">Status</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto w-full">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    Loading inventory...
-                  </TableCell>
+                  <TableHead className="font-semibold text-slate-600">Name</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Category</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Company</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Stock</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
-              ) : medicines.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-slate-500">
-                    No medicines found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                medicines.map((medicine) => {
-                  const totalStock = calculateTotalStock(medicine.batches);
-                  const isLowStock = totalStock <= medicine.minimumStockLevel;
-                  
-                  return (
-                    <TableRow key={medicine.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-medium text-slate-900">
-                        {medicine.name}
-                        {medicine.prescriptionRequired && (
-                          <Badge variant="outline" className="ml-2 text-[10px] text-blue-600 border-blue-200 bg-blue-50">Rx</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-600">{medicine.category || "-"}</TableCell>
-                      <TableCell className="text-slate-600">{medicine.company || "-"}</TableCell>
-                      <TableCell className="text-right font-medium text-slate-900">{totalStock}</TableCell>
-                      <TableCell>
-                        {totalStock === 0 ? (
-                          <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-50">Out of Stock</Badge>
-                        ) : isLowStock ? (
-                          <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">Low Stock</Badge>
-                        ) : (
-                          <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-50">In Stock</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/inventory/${medicine.id}`}>
-                          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                            View
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      Loading inventory...
+                    </TableCell>
+                  </TableRow>
+                ) : medicines.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                      No medicines found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  medicines.map((medicine) => {
+                    const totalStock = calculateTotalStock(medicine.batches);
+                    const isLowStock = totalStock <= medicine.minimumStockLevel;
+                    
+                    return (
+                      <TableRow key={medicine.id} className="hover:bg-slate-50/50">
+                        <TableCell className="font-medium text-slate-900">
+                          {medicine.name}
+                          {medicine.prescriptionRequired && (
+                            <Badge variant="outline" className="ml-2 text-[10px] text-blue-600 border-blue-200 bg-blue-50">Rx</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-600">{medicine.category || "-"}</TableCell>
+                        <TableCell className="text-slate-600">{medicine.company || "-"}</TableCell>
+                        <TableCell className="text-right font-medium text-slate-900">{totalStock}</TableCell>
+                        <TableCell>
+                          {totalStock === 0 ? (
+                            <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-50">Out of Stock</Badge>
+                          ) : isLowStock ? (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">Low Stock</Badge>
+                          ) : (
+                            <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-50">In Stock</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/inventory/${medicine.id}`}>
+                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                              View
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

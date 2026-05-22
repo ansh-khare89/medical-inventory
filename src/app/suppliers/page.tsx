@@ -74,66 +74,68 @@ export default function SuppliersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="font-semibold text-slate-600">Name / Company</TableHead>
-                <TableHead className="font-semibold text-slate-600">Contact</TableHead>
-                <TableHead className="font-semibold text-slate-600">GST Number</TableHead>
-                <TableHead className="font-semibold text-slate-600">Location</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto w-full">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-slate-500">
-                    Loading suppliers...
-                  </TableCell>
+                  <TableHead className="font-semibold text-slate-600">Name / Company</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Contact</TableHead>
+                  <TableHead className="font-semibold text-slate-600">GST Number</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Location</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
                 </TableRow>
-              ) : suppliers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-slate-500">
-                    No suppliers found. Click &quot;Add Supplier&quot; to create one.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                suppliers.map((supplier) => (
-                  <TableRow key={supplier.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-medium text-slate-900">
-                      {supplier.name}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {supplier.phone ? (
-                        <div className="flex items-center">
-                          <Phone className="h-3 w-3 mr-1.5 text-slate-400" />
-                          {supplier.phone}
-                        </div>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {supplier.gstNumber ? (
-                         <Badge variant="outline" className="font-mono text-xs bg-slate-50 text-slate-600">{supplier.gstNumber}</Badge>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {supplier.address ? (
-                        <div className="flex items-start max-w-[200px]">
-                          <MapPin className="h-3.5 w-3.5 mr-1.5 mt-0.5 text-slate-400 flex-shrink-0" />
-                          <span className="truncate">{supplier.address}</span>
-                        </div>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                        Edit
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-slate-500">
+                      Loading suppliers...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : suppliers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-slate-500">
+                      No suppliers found. Click &quot;Add Supplier&quot; to create one.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  suppliers.map((supplier) => (
+                    <TableRow key={supplier.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-medium text-slate-900">
+                        {supplier.name}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {supplier.phone ? (
+                          <div className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1.5 text-slate-400" />
+                            {supplier.phone}
+                          </div>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {supplier.gstNumber ? (
+                           <Badge variant="outline" className="font-mono text-xs bg-slate-50 text-slate-600">{supplier.gstNumber}</Badge>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {supplier.address ? (
+                          <div className="flex items-start max-w-[200px]">
+                            <MapPin className="h-3.5 w-3.5 mr-1.5 mt-0.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{supplier.address}</span>
+                          </div>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

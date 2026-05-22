@@ -68,8 +68,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 bg-white border-slate-200 shadow-sm">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+        <Card className="lg:col-span-4 bg-white border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg text-slate-800">Recent Sales</CardTitle>
           </CardHeader>
@@ -89,7 +89,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3 bg-white border-slate-200 shadow-sm">
+        <Card className="lg:col-span-3 bg-white border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg text-slate-800">Low Stock Medicines</CardTitle>
           </CardHeader>

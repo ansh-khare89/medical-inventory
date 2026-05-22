@@ -1,4 +1,4 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6 sticky top-0 z-10">
-      <div className="flex items-center w-full max-w-md">
+    <header className="flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 sticky top-0 z-10">
+      <div className="flex items-center w-full max-w-md gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuClick}
+          className="text-slate-500 hover:text-slate-700 md:hidden flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <div className="relative w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <Input
