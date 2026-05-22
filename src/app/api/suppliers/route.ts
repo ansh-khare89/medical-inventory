@@ -1,31 +1,20 @@
 import { NextResponse } from "next/server";
-import { createId, getDb, now } from "@/lib/db";
-
-interface SupplierRow {
-  id: string;
-  name: string;
-  phone: string | null;
-  address: string | null;
-  gstNumber: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
 
-    const suppliers = (search
-      ? db
-          .prepare(
-            `SELECT * FROM "Supplier"
-             WHERE "name" LIKE ? OR "phone" LIKE ?
-             ORDER BY "name" ASC`
-          )
-          .all(`%${search}%`, `%${search}%`)
-      : db.prepare(`SELECT * FROM "Supplier" ORDER BY "name" ASC`).all()) as unknown as SupplierRow[];
+    const suppliers = await prisma.supplier.findMany({
+      where: search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+        ]
+      } : undefined,
+      orderBy: { name: 'asc' },
+    });
 
     return NextResponse.json(suppliers);
   } catch (error) {
@@ -49,16 +38,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = getDb();
-    const id = createId();
-    const timestamp = now();
-
-    db.prepare(
-      `INSERT INTO "Supplier" ("id", "name", "phone", "address", "gstNumber", "createdAt", "updatedAt")
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, name, phone ?? null, address ?? null, gstNumber ?? null, timestamp, timestamp);
-
-    const supplier = db.prepare(`SELECT * FROM "Supplier" WHERE "id" = ?`).get(id);
+    const supplier = await prisma.supplier.create({
+      data: {
+        name,
+        phone: phone || null,
+        address: address || null,
+        gstNumber: gstNumber || null,
+      }
+    });
 
     return NextResponse.json(supplier, { status: 201 });
   } catch (error) {

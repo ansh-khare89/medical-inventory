@@ -1,55 +1,23 @@
 import { NextResponse } from "next/server";
-import { createId, getDb, now } from "@/lib/db";
-
-interface MedicineRow {
-  id: string;
-  name: string;
-  company: string | null;
-  category: string | null;
-  description: string | null;
-  minimumStockLevel: number;
-  rackLocation: string | null;
-  prescriptionRequired: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BatchRow {
-  id: string;
-  medicineId: string;
-  batchNumber: string;
-  expiryDate: string;
-  quantity: number;
-  purchasePrice: number;
-  sellingPrice: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
 
-    const medicines = (search
-      ? db
-          .prepare(
-            `SELECT * FROM "Medicine"
-             WHERE "name" LIKE ? OR "company" LIKE ?
-             ORDER BY "name" ASC`
-          )
-          .all(`%${search}%`, `%${search}%`)
-      : db.prepare(`SELECT * FROM "Medicine" ORDER BY "name" ASC`).all()) as unknown as MedicineRow[];
+    const medicines = await prisma.medicine.findMany({
+      where: search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { company: { contains: search, mode: 'insensitive' } },
+        ]
+      } : undefined,
+      orderBy: { name: 'asc' },
+      include: { batches: true },
+    });
 
-    const batches = db.prepare(`SELECT * FROM "MedicineBatch"`).all() as unknown as BatchRow[];
-    const medicinesWithBatches = medicines.map((medicine) => ({
-      ...medicine,
-      prescriptionRequired: Boolean(medicine.prescriptionRequired),
-      batches: batches.filter((batch) => batch.medicineId === medicine.id),
-    }));
-
-    return NextResponse.json(medicinesWithBatches);
+    return NextResponse.json(medicines);
   } catch (error) {
     console.error("Error fetching medicines:", error);
     return NextResponse.json(
@@ -79,28 +47,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = getDb();
-    const id = createId();
-    const timestamp = now();
-
-    db.prepare(
-      `INSERT INTO "Medicine"
-       ("id", "name", "company", "category", "description", "minimumStockLevel", "rackLocation", "prescriptionRequired", "createdAt", "updatedAt")
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      name,
-      company ?? null,
-      category ?? null,
-      description ?? null,
-      Number(minimumStockLevel) || 10,
-      rackLocation ?? null,
-      Boolean(prescriptionRequired) ? 1 : 0,
-      timestamp,
-      timestamp
-    );
-
-    const medicine = db.prepare(`SELECT * FROM "Medicine" WHERE "id" = ?`).get(id);
+    const medicine = await prisma.medicine.create({
+      data: {
+        name,
+        company: company || null,
+        category: category || null,
+        description: description || null,
+        minimumStockLevel: Number(minimumStockLevel) || 10,
+        rackLocation: rackLocation || null,
+        prescriptionRequired: Boolean(prescriptionRequired),
+      },
+    });
 
     return NextResponse.json(medicine, { status: 201 });
   } catch (error) {

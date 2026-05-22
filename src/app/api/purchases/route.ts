@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createId, getDb, now } from "@/lib/db";
+import prisma from "@/lib/prisma";
 
 interface PurchaseItemInput {
   medicineId: string;
@@ -10,43 +10,17 @@ interface PurchaseItemInput {
   sellingPrice: number | string;
 }
 
-interface PurchaseRow {
-  id: string;
-  supplierId: string;
-  invoiceNumber: string | null;
-  purchaseDate: string;
-  totalAmount: number;
-}
-
-interface SupplierRow {
-  id: string;
-  name: string;
-}
-
-interface PurchaseItemRow {
-  id: string;
-  purchaseId: string;
-  batchId: string;
-  quantity: number;
-  purchasePrice: number;
-}
-
 export async function GET() {
   try {
-    const db = getDb();
-    const purchases = db
-      .prepare(`SELECT * FROM "Purchase" ORDER BY "purchaseDate" DESC`)
-      .all() as unknown as PurchaseRow[];
-    const suppliers = db.prepare(`SELECT "id", "name" FROM "Supplier"`).all() as unknown as SupplierRow[];
-    const items = db.prepare(`SELECT * FROM "PurchaseItem"`).all() as unknown as PurchaseItemRow[];
+    const purchases = await prisma.purchase.findMany({
+      orderBy: { purchaseDate: 'desc' },
+      include: {
+        supplier: true,
+        items: true,
+      },
+    });
 
-    return NextResponse.json(
-      purchases.map((purchase) => ({
-        ...purchase,
-        supplier: suppliers.find((supplier) => supplier.id === purchase.supplierId) ?? null,
-        items: items.filter((item) => item.purchaseId === purchase.id),
-      }))
-    );
+    return NextResponse.json(purchases);
   } catch (error) {
     console.error("Error fetching purchases:", error);
     return NextResponse.json({ error: "Failed to fetch purchases" }, { status: 500 });
@@ -54,8 +28,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const db = getDb();
-
   try {
     const body = await request.json();
     const items = body.items as PurchaseItemInput[];
@@ -63,78 +35,57 @@ export async function POST(request: Request) {
       (sum, item) => sum + Number(item.quantity) * Number(item.purchasePrice),
       0
     );
-    const purchaseId = createId();
-    const timestamp = now();
 
-    db.exec("BEGIN");
+    const purchase = await prisma.$transaction(async (tx) => {
+      const newPurchase = await tx.purchase.create({
+        data: {
+          supplierId: body.supplierId,
+          invoiceNumber: body.invoiceNumber || null,
+          totalAmount,
+        }
+      });
 
-    db.prepare(
-      `INSERT INTO "Purchase"
-       ("id", "supplierId", "invoiceNumber", "purchaseDate", "totalAmount", "createdAt", "updatedAt")
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      purchaseId,
-      body.supplierId,
-      body.invoiceNumber ?? null,
-      timestamp,
-      totalAmount,
-      timestamp,
-      timestamp
-    );
+      for (const item of items) {
+        // Upsert MedicineBatch
+        const batch = await tx.medicineBatch.upsert({
+          where: {
+            medicineId_batchNumber: {
+              medicineId: item.medicineId,
+              batchNumber: item.batchNumber,
+            }
+          },
+          update: {
+            quantity: { increment: Number(item.quantity) },
+            purchasePrice: Number(item.purchasePrice),
+            sellingPrice: Number(item.sellingPrice),
+            expiryDate: new Date(item.expiryDate),
+          },
+          create: {
+            medicineId: item.medicineId,
+            batchNumber: item.batchNumber,
+            expiryDate: new Date(item.expiryDate),
+            quantity: Number(item.quantity),
+            purchasePrice: Number(item.purchasePrice),
+            sellingPrice: Number(item.sellingPrice),
+          }
+        });
 
-    for (const item of items) {
-      const existingBatch = db
-        .prepare(
-          `SELECT "id", "quantity" FROM "MedicineBatch"
-           WHERE "medicineId" = ? AND "batchNumber" = ?`
-        )
-        .get(item.medicineId, item.batchNumber);
-
-      const batchId = (existingBatch?.id as string | undefined) ?? createId();
-
-      if (existingBatch) {
-        db.prepare(
-          `UPDATE "MedicineBatch"
-           SET "quantity" = ?, "purchasePrice" = ?, "sellingPrice" = ?, "expiryDate" = ?, "updatedAt" = ?
-           WHERE "id" = ?`
-        ).run(
-          Number(existingBatch.quantity) + Number(item.quantity),
-          Number(item.purchasePrice),
-          Number(item.sellingPrice),
-          new Date(item.expiryDate).toISOString(),
-          timestamp,
-          batchId
-        );
-      } else {
-        db.prepare(
-          `INSERT INTO "MedicineBatch"
-           ("id", "medicineId", "batchNumber", "expiryDate", "quantity", "purchasePrice", "sellingPrice", "createdAt", "updatedAt")
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).run(
-          batchId,
-          item.medicineId,
-          item.batchNumber,
-          new Date(item.expiryDate).toISOString(),
-          Number(item.quantity),
-          Number(item.purchasePrice),
-          Number(item.sellingPrice),
-          timestamp,
-          timestamp
-        );
+        // Create PurchaseItem
+        await tx.purchaseItem.create({
+          data: {
+            purchaseId: newPurchase.id,
+            batchId: batch.id,
+            quantity: Number(item.quantity),
+            purchasePrice: Number(item.purchasePrice),
+          }
+        });
       }
 
-      db.prepare(
-        `INSERT INTO "PurchaseItem"
-         ("id", "purchaseId", "batchId", "quantity", "purchasePrice", "createdAt", "updatedAt")
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).run(createId(), purchaseId, batchId, Number(item.quantity), Number(item.purchasePrice), timestamp, timestamp);
-    }
+      return newPurchase;
+    });
 
-    db.exec("COMMIT");
-    const purchase = db.prepare(`SELECT * FROM "Purchase" WHERE "id" = ?`).get(purchaseId);
     return NextResponse.json(purchase, { status: 201 });
   } catch (error) {
-    db.exec("ROLLBACK");
     console.error("Error creating purchase:", error);
     return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
   }

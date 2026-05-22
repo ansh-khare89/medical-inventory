@@ -1,45 +1,19 @@
 import { NextResponse } from "next/server";
-import { createId, getDb, now } from "@/lib/db";
+import prisma from "@/lib/prisma";
 
 interface SaleItemInput {
   medicineId: string;
   quantity: number | string;
 }
 
-interface SaleRow {
-  id: string;
-  saleDate: string;
-  customerName: string | null;
-  customerPhone: string | null;
-  totalAmount: number;
-}
-
-interface SaleItemRow {
-  id: string;
-  saleId: string;
-  batchId: string;
-  quantity: number;
-  sellingPrice: number;
-}
-
-interface BatchRow {
-  id: string;
-  quantity: number;
-  sellingPrice: number;
-}
-
 export async function GET() {
   try {
-    const db = getDb();
-    const sales = db.prepare(`SELECT * FROM "Sale" ORDER BY "saleDate" DESC`).all() as unknown as SaleRow[];
-    const items = db.prepare(`SELECT * FROM "SaleItem"`).all() as unknown as SaleItemRow[];
+    const sales = await prisma.sale.findMany({
+      orderBy: { saleDate: 'desc' },
+      include: { items: true },
+    });
 
-    return NextResponse.json(
-      sales.map((sale) => ({
-        ...sale,
-        items: items.filter((item) => item.saleId === sale.id),
-      }))
-    );
+    return NextResponse.json(sales);
   } catch (error) {
     console.error("Error fetching sales:", error);
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
@@ -47,82 +21,73 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const db = getDb();
-
   try {
     const body = await request.json();
     const items = body.items as SaleItemInput[];
-    const saleId = createId();
-    const timestamp = now();
-    const saleItemsToCreate: Array<{ batchId: string; quantity: number; sellingPrice: number }> = [];
-    let totalAmount = 0;
+    
+    const sale = await prisma.$transaction(async (tx) => {
+      let totalAmount = 0;
+      const saleItemsToCreate = [];
 
-    db.exec("BEGIN");
+      for (const item of items) {
+        let remainingQuantity = Number(item.quantity);
+        
+        // Find all batches for this medicine that have quantity > 0, ordered by expiry date (FEFO)
+        const batches = await tx.medicineBatch.findMany({
+          where: {
+            medicineId: item.medicineId,
+            quantity: { gt: 0 }
+          },
+          orderBy: { expiryDate: 'asc' }
+        });
 
-    for (const item of items) {
-      let remainingQuantity = Number(item.quantity);
-      const batches = db
-        .prepare(
-          `SELECT "id", "quantity", "sellingPrice" FROM "MedicineBatch"
-           WHERE "medicineId" = ? AND "quantity" > 0
-           ORDER BY "expiryDate" ASC`
-        )
-        .all(item.medicineId) as unknown as BatchRow[];
-
-      const totalAvailable = batches.reduce((sum, batch) => sum + batch.quantity, 0);
-      if (totalAvailable < remainingQuantity) {
-        throw new Error(`Insufficient stock for medicine ID ${item.medicineId}`);
-      }
-
-      for (const batch of batches) {
-        if (remainingQuantity <= 0) {
-          break;
+        const totalAvailable = batches.reduce((sum, batch) => sum + batch.quantity, 0);
+        if (totalAvailable < remainingQuantity) {
+          throw new Error(`Insufficient stock for medicine ID ${item.medicineId}`);
         }
 
-        const quantityToDeduct = Math.min(batch.quantity, remainingQuantity);
-        db.prepare(`UPDATE "MedicineBatch" SET "quantity" = ?, "updatedAt" = ? WHERE "id" = ?`).run(
-          batch.quantity - quantityToDeduct,
-          timestamp,
-          batch.id
-        );
+        for (const batch of batches) {
+          if (remainingQuantity <= 0) break;
 
-        saleItemsToCreate.push({
-          batchId: batch.id,
-          quantity: quantityToDeduct,
-          sellingPrice: batch.sellingPrice,
-        });
-        totalAmount += quantityToDeduct * batch.sellingPrice;
-        remainingQuantity -= quantityToDeduct;
+          const quantityToDeduct = Math.min(batch.quantity, remainingQuantity);
+          
+          await tx.medicineBatch.update({
+            where: { id: batch.id },
+            data: { quantity: { decrement: quantityToDeduct } }
+          });
+
+          saleItemsToCreate.push({
+            batchId: batch.id,
+            quantity: quantityToDeduct,
+            sellingPrice: batch.sellingPrice,
+          });
+          
+          totalAmount += quantityToDeduct * batch.sellingPrice;
+          remainingQuantity -= quantityToDeduct;
+        }
       }
-    }
 
-    db.prepare(
-      `INSERT INTO "Sale"
-       ("id", "saleDate", "customerName", "customerPhone", "totalAmount", "createdAt", "updatedAt")
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      saleId,
-      timestamp,
-      body.customerName ?? null,
-      body.customerPhone ?? null,
-      totalAmount,
-      timestamp,
-      timestamp
-    );
+      const newSale = await tx.sale.create({
+        data: {
+          customerName: body.customerName || null,
+          customerPhone: body.customerPhone || null,
+          totalAmount,
+          items: {
+            create: saleItemsToCreate.map(item => ({
+              batchId: item.batchId,
+              quantity: item.quantity,
+              sellingPrice: item.sellingPrice,
+            }))
+          }
+        },
+        include: { items: true }
+      });
 
-    for (const item of saleItemsToCreate) {
-      db.prepare(
-        `INSERT INTO "SaleItem"
-         ("id", "saleId", "batchId", "quantity", "sellingPrice", "createdAt", "updatedAt")
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).run(createId(), saleId, item.batchId, item.quantity, item.sellingPrice, timestamp, timestamp);
-    }
+      return newSale;
+    });
 
-    db.exec("COMMIT");
-    const sale = db.prepare(`SELECT * FROM "Sale" WHERE "id" = ?`).get(saleId);
-    return NextResponse.json({ ...sale, items: saleItemsToCreate }, { status: 201 });
+    return NextResponse.json(sale, { status: 201 });
   } catch (error) {
-    db.exec("ROLLBACK");
     console.error("Error creating sale:", error);
     const message = error instanceof Error ? error.message : "Failed to create sale";
     return NextResponse.json({ error: message }, { status: 500 });
